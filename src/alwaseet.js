@@ -35,15 +35,23 @@ function credentials() {
 }
 const isConfigured = () => { const c = credentials(); return !!(c.username && c.password); };
 
-async function raw(method, endpoint, { query = {}, form = null } = {}) {
+// How the token is put in the URL. Some servers compare it un-decoded, so 'raw' sends it exactly as received.
+const tokenMode = () => getSetting('aw_token_mode') || 'encoded';
+
+async function raw(method, endpoint, { query = {}, form = null, mode = null, headers = {} } = {}) {
   await throttle();
-  const url = new URL(BASE + '/' + endpoint);
-  for (const [k, v] of Object.entries(query)) if (v != null) url.searchParams.set(k, v);
+  const m = mode || tokenMode();
+  const parts = [];
+  for (const [k, v] of Object.entries(query)) {
+    if (v == null) continue;
+    parts.push(encodeURIComponent(k) + '=' + (k === 'token' && m === 'raw' ? String(v) : encodeURIComponent(v)));
+  }
+  const url = BASE + '/' + endpoint + (parts.length ? '?' + parts.join('&') : '');
   let body;
   if (form) { body = new FormData(); for (const [k, v] of Object.entries(form)) if (v != null && v !== '') body.append(k, String(v)); }
   let res, json;
   try {
-    res = await fetch(url, { method, body, signal: AbortSignal.timeout(30_000), headers: { Accept: 'application/json' } });
+    res = await fetch(url, { method, body, signal: AbortSignal.timeout(30_000), headers: { Accept: 'application/json', ...headers } });
   } catch (e) {
     throw new AlWaseetError('Cannot reach Al-Waseet: ' + e.message, 'NET');
   }

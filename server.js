@@ -290,6 +290,19 @@ route('POST', '/api/aw/test', async (ctx) => {
   const username = ctx.body.username || c.username, password = ctx.body.password || c.password;
   if (!username || !password) throw httpError(400, 'Enter username and password');
   const token = await aw.login(username, password);
+  // Find a way of sending the token that Al-Waseet accepts (tried on the read-only statuses API).
+  const variants = [
+    ['encoded', {}], ['raw', {}],
+    ['raw', { Authorization: 'Bearer ' + token }], ['raw', { token }],
+  ];
+  const tried = [];
+  let mode = null;
+  for (const [m, headers] of variants) {
+    try { await aw.raw('GET', 'statuses', { query: { token }, mode: m, headers }); mode = m; tried.push(`${m}${Object.keys(headers).length ? '+' + Object.keys(headers)[0] : ''}: ok`); break; }
+    catch (e) { tried.push(`${m}${Object.keys(headers).length ? '+' + Object.keys(headers)[0] : ''}: ${e.errNum} ${e.message}`); }
+  }
+  console.log('Al-Waseet token check (token length ' + token.length + ', starts with ' + JSON.stringify(token.slice(0, 2)) + '):', tried.join(' | '));
+  if (mode) setSetting('aw_token_mode', mode);
   // Check which read-only APIs this account may use (no orders are created or changed).
   const checks = {};
   for (const [name, method, ep] of [['statuses', 'GET', 'statuses'], ['orders', 'GET', 'merchant-orders'], ['invoices', 'GET', 'get_merchant_invoices']]) {
@@ -297,6 +310,7 @@ route('POST', '/api/aw/test', async (ctx) => {
     catch (e) { checks[name] = { ok: false, error: e.message, errNum: e.errNum || null }; }
   }
   console.log('Al-Waseet access check:', JSON.stringify(checks));
+  if (checks.orders && checks.orders.ok) setSetting('aw_token', token);
   return { ok: true, checks };
 });
 
@@ -379,7 +393,7 @@ function serveStatic(req, res, pathname) {
     if (err || !st.isFile()) file = path.join(PUBLIC, 'index.html');           // SPA fallback
     const ext = path.extname(file);
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream',
-      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=3600',
+      'Cache-Control': 'no-cache',
       'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin' });
     fs.createReadStream(file).pipe(res);
   });
