@@ -67,7 +67,9 @@ async function raw(method, endpoint, { query = {}, form = null, mode = null, hea
 async function login(username, password) {
   const data = await raw('POST', 'login', { form: { username, password } });
   if (!data || !data.token) throw new AlWaseetError('Login succeeded but no token returned');
-  return data.token;
+  console.log('Al-Waseet login ok; response fields: ' + Object.keys(data).join(','));
+  const tk = String(data.token);
+  return getSetting('aw_token_prefix') === '@@' && !tk.startsWith('@@') ? '@@' + tk : tk;
 }
 
 async function token(force = false) {

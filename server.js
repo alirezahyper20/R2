@@ -291,26 +291,31 @@ route('POST', '/api/aw/test', async (ctx) => {
   if (!username || !password) throw httpError(400, 'Enter username and password');
   const token = await aw.login(username, password);
   // Find a way of sending the token that Al-Waseet accepts (tried on the read-only statuses API).
+  // Their published examples show tokens shaped like "@@<hex>", so also try with that prefix.
+  const withAt = token.startsWith('@@') ? token : '@@' + token;
   const variants = [
-    ['encoded', {}], ['raw', {}],
-    ['raw', { Authorization: 'Bearer ' + token }], ['raw', { token }],
+    ['encoded', token, {}], ['raw', token, {}], ['raw', withAt, {}], ['encoded', withAt, {}],
+    ['raw', token, { Authorization: 'Bearer ' + token }],
   ];
   const tried = [];
-  let mode = null;
-  for (const [m, headers] of variants) {
-    try { await aw.raw('GET', 'statuses', { query: { token }, mode: m, headers }); mode = m; tried.push(`${m}${Object.keys(headers).length ? '+' + Object.keys(headers)[0] : ''}: ok`); break; }
-    catch (e) { tried.push(`${m}${Object.keys(headers).length ? '+' + Object.keys(headers)[0] : ''}: ${e.errNum} ${e.message}`); }
+  let mode = null, goodToken = null;
+  for (const [m, tk, headers] of variants) {
+    const label = `${m}${tk !== token ? '+@@' : ''}${Object.keys(headers).length ? '+auth' : ''}`;
+    try { await aw.raw('GET', 'statuses', { query: { token: tk }, mode: m, headers }); mode = m; goodToken = tk; tried.push(label + ': ok'); break; }
+    catch (e) { tried.push(`${label}: ${e.errNum}`); }
   }
-  console.log('Al-Waseet token check (token length ' + token.length + ', starts with ' + JSON.stringify(token.slice(0, 2)) + '):', tried.join(' | '));
+  console.log('Al-Waseet token check (length ' + token.length + ', hex-only ' + /^[0-9a-f]+$/i.test(token) +
+    ', has @ ' + token.includes('@') + '):', tried.join(' | '));
+  if (goodToken && goodToken !== token) setSetting('aw_token_prefix', '@@');
   if (mode) setSetting('aw_token_mode', mode);
   // Check which read-only APIs this account may use (no orders are created or changed).
   const checks = {};
   for (const [name, method, ep] of [['statuses', 'GET', 'statuses'], ['orders', 'GET', 'merchant-orders'], ['invoices', 'GET', 'get_merchant_invoices']]) {
-    try { const d = await aw.raw(method, ep, { query: { token } }); checks[name] = { ok: true, count: Array.isArray(d) ? d.length : null }; }
+    try { const d = await aw.raw(method, ep, { query: { token: goodToken || token } }); checks[name] = { ok: true, count: Array.isArray(d) ? d.length : null }; }
     catch (e) { checks[name] = { ok: false, error: e.message, errNum: e.errNum || null }; }
   }
   console.log('Al-Waseet access check:', JSON.stringify(checks));
-  if (checks.orders && checks.orders.ok) setSetting('aw_token', token);
+  if (checks.orders && checks.orders.ok) setSetting('aw_token', goodToken || token);
   return { ok: true, checks };
 });
 
