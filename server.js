@@ -290,7 +290,14 @@ route('POST', '/api/aw/test', async (ctx) => {
   const username = ctx.body.username || c.username, password = ctx.body.password || c.password;
   if (!username || !password) throw httpError(400, 'Enter username and password');
   const token = await aw.login(username, password);
-  return { ok: true, token_preview: token.slice(0, 6) + '…' };
+  // Check which read-only APIs this account may use (no orders are created or changed).
+  const checks = {};
+  for (const [name, method, ep] of [['statuses', 'GET', 'statuses'], ['orders', 'GET', 'merchant-orders'], ['invoices', 'GET', 'get_merchant_invoices']]) {
+    try { const d = await aw.raw(method, ep, { query: { token } }); checks[name] = { ok: true, count: Array.isArray(d) ? d.length : null }; }
+    catch (e) { checks[name] = { ok: false, error: e.message, errNum: e.errNum || null }; }
+  }
+  console.log('Al-Waseet access check:', JSON.stringify(checks));
+  return { ok: true, checks };
 });
 
 // ---------------- invoices ----------------

@@ -49,7 +49,10 @@ async function raw(method, endpoint, { query = {}, form = null } = {}) {
   }
   const text = await res.text();
   try { json = JSON.parse(text); } catch { throw new AlWaseetError(`Unexpected response (HTTP ${res.status})`, 'PARSE', res.status); }
-  if (json.status !== true) throw new AlWaseetError(json.msg || 'Al-Waseet error', json.errNum, res.status);
+  if (json.status !== true) {
+    console.log(`Al-Waseet error on ${endpoint}: errNum=${json.errNum} http=${res.status} msg=${json.msg}`);
+    throw new AlWaseetError(json.msg || 'Al-Waseet error', json.errNum, res.status);
+  }
   return json.data;
 }
 
@@ -108,6 +111,7 @@ async function cached(key, ttlMs, fn) {
 const DAY = 864e5;
 
 module.exports = {
+  raw,
   BASE, AlWaseetError, isConfigured, credentials, login, token, normalizeMobile,
   clearToken: () => setSetting('aw_token', ''),
   cities: () => cached('cities', DAY, () => raw('GET', 'citys')),

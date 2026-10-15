@@ -6,7 +6,7 @@ const T = {
   ar: {
     app: 'إدارة متجر الهورنات', dashboard: 'الرئيسية', orders: 'الطلبات', products: 'المخزون', purchases: 'المشتريات',
     expenses: 'المصاريف', invoices: 'فواتير الوسيط', settings: 'الإعدادات', more: 'المزيد', logout: 'تسجيل الخروج', lang: 'English',
-    login: 'تسجيل الدخول', setup_code: 'رمز الإعداد', aw_enter_first: 'أدخل اسم المستخدم وكلمة المرور الخاصة بالوسيط أولاً', username: 'اسم المستخدم', password: 'كلمة المرور', setup_title: 'إعداد الحساب لأول مرة',
+    login: 'تسجيل الدخول', setup_code: 'رمز الإعداد', aw_enter_first: 'أدخل اسم المستخدم وكلمة المرور الخاصة بالوسيط أولاً', aw_perm_help: 'تسجيل الدخول نجح لكن الوسيط رفض بعض الصلاحيات. تأكد أنك تستخدم حساب التاجر الرئيسي (وليس حساب موظف)، أو اطلب من الوسيط تفعيل الربط البرمجي (API) لحسابك.', username: 'اسم المستخدم', password: 'كلمة المرور', setup_title: 'إعداد الحساب لأول مرة',
     setup_sub: 'أنشئ حساب المدير لمتجرك', business_name: 'اسم المتجر', display_name: 'الاسم', create_account: 'إنشاء الحساب',
     login_sub: 'أدخل بياناتك للمتابعة',
     today: 'اليوم', d7: '7 أيام', this_month: 'هذا الشهر', last_month: 'الشهر الماضي', custom: 'مخصص', from: 'من', to: 'إلى', apply: 'تطبيق',
@@ -54,7 +54,7 @@ const T = {
   en: {
     app: 'Horn Store Manager', dashboard: 'Dashboard', orders: 'Orders', products: 'Inventory', purchases: 'Purchases',
     expenses: 'Expenses', invoices: 'Al-Waseet invoices', settings: 'Settings', more: 'More', logout: 'Log out', lang: 'العربية',
-    login: 'Log in', setup_code: 'Setup code', aw_enter_first: 'Enter your Al-Waseet username and password first', username: 'Username', password: 'Password', setup_title: 'First-time setup',
+    login: 'Log in', setup_code: 'Setup code', aw_enter_first: 'Enter your Al-Waseet username and password first', aw_perm_help: 'Login worked but Al-Waseet refused some access. Make sure this is the main merchant account (not a staff/merchant-user account), or ask Al-Waseet to enable API integration for your account.', username: 'Username', password: 'Password', setup_title: 'First-time setup',
     setup_sub: 'Create the admin account for your store', business_name: 'Store name', display_name: 'Your name', create_account: 'Create account',
     login_sub: 'Enter your details to continue',
     today: 'Today', d7: '7 days', this_month: 'This month', last_month: 'Last month', custom: 'Custom', from: 'From', to: 'To', apply: 'Apply',
@@ -842,10 +842,14 @@ PAGES.settings = async (el) => {
     if (!awFilled()) return toast(t('aw_enter_first'), true);
     const f = $('#awf'); const body = {};
     if (f.aw_username) { body.username = f.aw_username.value.trim(); body.password = f.aw_password.value; }
-    await api('POST', '/api/aw/test', body);
+    const r = await api('POST', '/api/aw/test', body);
     await saveAw();
-    toast(t('conn_ok') + ' — ' + t('saved'));
-    route();
+    const c = r.checks || {};
+    const row = (k, label) => c[k] ? `<tr><td>${label}</td><td>${c[k].ok ? `<span class="good">✓</span>${c[k].count != null ? ` <span class="num muted">(${c[k].count})</span>` : ''}` : `<span class="bad">✗ ${esc(c[k].error)}</span>${c[k].errNum ? ` <span class="num muted">#${esc(c[k].errNum)}</span>` : ''}`}</td></tr>` : '';
+    const allOk = Object.values(c).every(x => x.ok);
+    modal(t('test_conn'), `<div class="alert ${allOk ? 'good' : 'warn'}" style="margin-bottom:12px">${t('conn_ok')} — ${t('saved')}</div>
+      <table><tbody>${row('statuses', t('status'))}${row('orders', t('orders'))}${row('invoices', t('invoices'))}</tbody></table>
+      ${allOk ? '' : `<p class="small muted" style="margin-top:12px">${t('aw_perm_help')}</p>`}`);
   });
   $('#aw-sync').onclick = async e => {
     if (!awFilled()) return toast(t('aw_enter_first'), true);
