@@ -284,6 +284,17 @@ route('GET', '/api/aw/regions', (ctx) => { if (!ctx.query.city_id) throw httpErr
 route('GET', '/api/aw/sizes', () => aw.packageSizes());
 route('POST', '/api/aw/sync', async (ctx) => { needAdmin(ctx.user); return sync.syncAll(); });
 route('GET', '/api/aw/log', (ctx) => { needAdmin(ctx.user); return all('SELECT * FROM sync_log ORDER BY id DESC LIMIT 50'); });
+// Gives the owner a link to open on their own phone, so Al-Waseet sees a request from an Iraqi connection.
+route('POST', '/api/aw/phone-test', async (ctx) => {
+  needAdmin(ctx.user);
+  const c = aw.credentials();
+  if (!c.username || !c.password) throw httpError(400, 'Enter username and password');
+  const token = await aw.login(c.username, c.password);
+  setSetting('aw_pause_until', String(Date.now() + 15 * 60e3));   // don't log in again (which could replace this token) for 15 min
+  console.log('Phone test link issued (automatic sync paused 15 min)');
+  return { url: aw.BASE + '/statuses?token=' + token };
+});
+
 route('POST', '/api/aw/test', async (ctx) => {
   needAdmin(ctx.user);
   const c = aw.credentials();

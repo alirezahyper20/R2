@@ -191,7 +191,8 @@ function startScheduler() {
   if (timer) clearTimeout(timer);
   const minutes = Math.max(2, int(getSetting('sync_minutes', '10'), 10));
   timer = setTimeout(async () => {
-    if (aw.isConfigured()) { try { await syncAll(); } catch (_) { /* logged */ } }
+    const paused = Number(getSetting('aw_pause_until', '0')) > Date.now();
+    if (aw.isConfigured() && !paused) { try { await syncAll(); } catch (_) { /* logged */ } }
     startScheduler();
   }, minutes * 60e3);
   timer.unref?.();

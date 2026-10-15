@@ -6,7 +6,7 @@ const T = {
   ar: {
     app: 'إدارة متجر الهورنات', dashboard: 'الرئيسية', orders: 'الطلبات', products: 'المخزون', purchases: 'المشتريات',
     expenses: 'المصاريف', invoices: 'فواتير الوسيط', settings: 'الإعدادات', more: 'المزيد', logout: 'تسجيل الخروج', lang: 'English',
-    login: 'تسجيل الدخول', setup_code: 'رمز الإعداد', no_products_yet: 'لا توجد منتجات بعد. أضف منتجك الأول (مثلاً هورن حلزوني) مع سعر البيع والكمية والكلفة.', aw_enter_first: 'أدخل اسم المستخدم وكلمة المرور الخاصة بالوسيط أولاً', aw_perm_help: 'تسجيل الدخول نجح لكن الوسيط رفض بعض الصلاحيات. تأكد أنك تستخدم حساب التاجر الرئيسي (وليس حساب موظف)، أو اطلب من الوسيط تفعيل الربط البرمجي (API) لحسابك.', username: 'اسم المستخدم', password: 'كلمة المرور', setup_title: 'إعداد الحساب لأول مرة',
+    login: 'تسجيل الدخول', setup_code: 'رمز الإعداد', phone_test: 'اختبار من هاتفي', phone_test_1: 'هذا الاختبار يرسل الطلب إلى الوسيط من هاتفك (إنترنت عراقي) بدلاً من الخادم. اضغط الزر ثم صوّر الصفحة التي تظهر وأرسلها.', phone_test_open: 'افتح الاختبار', phone_test_ok: 'إذا ظهرت قائمة حالات (status: true) فالمشكلة أن الوسيط يرفض الطلبات القادمة من خارج العراق.', phone_test_bad: 'إذا ظهر "ليس لديك صلاحية الوصول" فالمشكلة في صلاحية حسابك لدى الوسيط وليس في الخادم.', no_products_yet: 'لا توجد منتجات بعد. أضف منتجك الأول (مثلاً هورن حلزوني) مع سعر البيع والكمية والكلفة.', aw_enter_first: 'أدخل اسم المستخدم وكلمة المرور الخاصة بالوسيط أولاً', aw_perm_help: 'تسجيل الدخول نجح لكن الوسيط رفض بعض الصلاحيات. تأكد أنك تستخدم حساب التاجر الرئيسي (وليس حساب موظف)، أو اطلب من الوسيط تفعيل الربط البرمجي (API) لحسابك.', username: 'اسم المستخدم', password: 'كلمة المرور', setup_title: 'إعداد الحساب لأول مرة',
     setup_sub: 'أنشئ حساب المدير لمتجرك', business_name: 'اسم المتجر', display_name: 'الاسم', create_account: 'إنشاء الحساب',
     login_sub: 'أدخل بياناتك للمتابعة',
     today: 'اليوم', d7: '7 أيام', this_month: 'هذا الشهر', last_month: 'الشهر الماضي', custom: 'مخصص', from: 'من', to: 'إلى', apply: 'تطبيق',
@@ -54,7 +54,7 @@ const T = {
   en: {
     app: 'Horn Store Manager', dashboard: 'Dashboard', orders: 'Orders', products: 'Inventory', purchases: 'Purchases',
     expenses: 'Expenses', invoices: 'Al-Waseet invoices', settings: 'Settings', more: 'More', logout: 'Log out', lang: 'العربية',
-    login: 'Log in', setup_code: 'Setup code', no_products_yet: 'No products yet. Add your first product (e.g. a snail horn) with its sale price, quantity and cost.', aw_enter_first: 'Enter your Al-Waseet username and password first', aw_perm_help: 'Login worked but Al-Waseet refused some access. Make sure this is the main merchant account (not a staff/merchant-user account), or ask Al-Waseet to enable API integration for your account.', username: 'Username', password: 'Password', setup_title: 'First-time setup',
+    login: 'Log in', setup_code: 'Setup code', phone_test: 'Test from my phone', phone_test_1: 'This sends the request to Al-Waseet from your phone (Iraqi internet) instead of the server. Tap the button, then screenshot the page that opens and send it.', phone_test_open: 'Open the test', phone_test_ok: 'If you see a list of statuses (status: true), Al-Waseet is rejecting requests from outside Iraq.', phone_test_bad: 'If you see "ليس لديك صلاحية الوصول", the problem is your account permission at Al-Waseet, not the server.', no_products_yet: 'No products yet. Add your first product (e.g. a snail horn) with its sale price, quantity and cost.', aw_enter_first: 'Enter your Al-Waseet username and password first', aw_perm_help: 'Login worked but Al-Waseet refused some access. Make sure this is the main merchant account (not a staff/merchant-user account), or ask Al-Waseet to enable API integration for your account.', username: 'Username', password: 'Password', setup_title: 'First-time setup',
     setup_sub: 'Create the admin account for your store', business_name: 'Store name', display_name: 'Your name', create_account: 'Create account',
     login_sub: 'Enter your details to continue',
     today: 'Today', d7: '7 days', this_month: 'This month', last_month: 'Last month', custom: 'Custom', from: 'From', to: 'To', apply: 'Apply',
@@ -800,7 +800,7 @@ PAGES.settings = async (el) => {
           <label class="field">${t('aw_pass')}<input name="aw_password" type="password" autocomplete="new-password" placeholder="${s.aw_password_set ? t('aw_pass_set') : ''}" dir="ltr"></label></div>`}
         <div class="row"><label class="field">${t('import_since')}<input name="aw_import_since" type="date" value="${esc(s.aw_import_since)}"></label>
           <label class="field">${t('sync_minutes')}<input name="sync_minutes" type="number" min="2" value="${esc(s.sync_minutes)}" inputmode="numeric"></label></div>
-        <div class="toolbar"><button type="button" class="btn" id="aw-test">${t('test_conn')}</button><button type="button" class="btn" id="aw-sync">${icon('sync')} ${t('sync_now')}</button><button class="btn primary" type="submit">${t('save')}</button></div>
+        <div class="toolbar"><button type="button" class="btn" id="aw-test">${t('test_conn')}</button><button type="button" class="btn" id="aw-sync">${icon('sync')} ${t('sync_now')}</button><button type="button" class="btn" id="aw-phone">${t('phone_test')}</button><button class="btn primary" type="submit">${t('save')}</button></div>
         <div class="small muted num" dir="ltr">${esc(s.aw_base)}</div>
       </form></div>
 
@@ -863,6 +863,13 @@ PAGES.settings = async (el) => {
     modal(t('test_conn'), `<div class="alert ${allOk ? 'good' : 'warn'}" style="margin-bottom:12px">${t('conn_ok')} — ${t('saved')}</div>
       <table><tbody>${row('statuses', t('status'))}${row('orders', t('orders'))}${row('invoices', t('invoices'))}</tbody></table>
       ${allOk ? '' : `<p class="small muted" style="margin-top:12px">${t('aw_perm_help')}</p>`}`);
+  });
+  $('#aw-phone').onclick = e => guard(e.currentTarget, async () => {
+    const r = await api('POST', '/api/aw/phone-test');
+    modal(t('phone_test'), `<p>${t('phone_test_1')}</p>
+      <a class="btn primary" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer" style="width:100%;margin:8px 0 14px">${t('phone_test_open')}</a>
+      <div class="alert good" style="margin-bottom:8px"><div>${t('phone_test_ok')}</div></div>
+      <div class="alert warn"><div>${t('phone_test_bad')}</div></div>`);
   });
   $('#aw-sync').onclick = async e => {
     if (!awFilled()) return toast(t('aw_enter_first'), true);
