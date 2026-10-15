@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>اختبار الوسيط المباشر</title>
+<style>
+  :root { --bg:#0f1b2d; --card:#16233a; --ink:#e7ecf3; --muted:#9aa6b8; --accent:#f5a524; --line:#26354f; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif; line-height:1.6; padding:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin:0 auto 14px; max-width:520px; }
+  h1 { font-size:20px; margin:4px auto 12px; max-width:520px; }
+  h2 { font-size:16px; margin:0 0 8px; }
+  p { margin:0 0 10px; color:var(--muted); font-size:14px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:8px 0 4px; }
+  input { width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--line); background:#0c1626; color:var(--ink); font-size:16px; direction:ltr; }
+  button { width:100%; margin-top:12px; padding:12px; border:0; border-radius:10px; background:var(--accent); color:#1d1300; font-weight:700; font-size:16px; }
+  code { direction:ltr; unicode-bidi:isolate; background:#0c1626; padding:1px 6px; border-radius:6px; }
+  .note { font-size:13px; }
+</style>
+</head>
+<body>
+<h1>اختبار الوسيط المباشر (بدون التطبيق)</h1>
+<div class="card">
+  <p class="note">هذه الصفحة ترسل بياناتك <b>مباشرة من متصفح هاتفك إلى خادم الوسيط</b>، مثل برنامج Postman تماماً. لا يمر أي شيء عبر تطبيقنا أو خادمنا، ولا يتم حفظ شيء.</p>
+</div>
+
+<div class="card">
+  <h2>١. تسجيل الدخول في الوسيط</h2>
+  <p>ستفتح صفحة جديدة من الوسيط فيها <code>token</code>. انسخ قيمة الـ token كاملة.</p>
+  <form method="POST" action="https://api.alwaseet-iq.net/v1/merchant/login" enctype="multipart/form-data" target="_blank">
+    <label>اسم المستخدم</label>
+    <input name="username" autocomplete="off" autocapitalize="off" required>
+    <label>كلمة المرور</label>
+    <input name="password" type="password" autocomplete="off" required>
+    <button type="submit">تسجيل الدخول في الوسيط</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>٢. تجربة الـ token</h2>
+  <p>الصق الـ token هنا. ستفتح صفحة من الوسيط: إذا ظهر <code>"status":true</code> فالحساب يعمل، وإذا ظهر <code>errNum 21</code> فالمشكلة في الحساب لدى الوسيط.</p>
+  <form method="GET" action="https://api.alwaseet-iq.net/v1/merchant/statuses" target="_blank">
+    <label>token</label>
+    <input name="token" autocomplete="off" autocapitalize="off" required>
+    <button type="submit">تجربة الحالات (statuses)</button>
+  </form>
+</div>
+</body>
+</html>
