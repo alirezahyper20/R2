@@ -409,7 +409,15 @@ route('GET', '/api/export/:what', (ctx) => {
 // ---------------- static files ----------------
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
+// Each server start gets a new version tag so phones never keep an old copy of the app.
+const BUILD = Date.now().toString(36);
+let indexHtml = null;
 function serveStatic(req, res, pathname) {
+  if (pathname === '/' || pathname === '/index.html' || !path.extname(pathname)) {
+    if (!indexHtml) indexHtml = fs.readFileSync(path.join(PUBLIC, 'index.html'), 'utf8').replaceAll('__V__', BUILD);
+    res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin' });
+    return res.end(indexHtml);
+  }
   let file = path.normalize(path.join(PUBLIC, pathname === '/' ? 'index.html' : pathname));
   if (!file.startsWith(PUBLIC)) return send(res, 403, 'Forbidden');
   fs.stat(file, (err, st) => {
