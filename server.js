@@ -57,12 +57,16 @@ const needAdmin = u => { if (!isAdmin(u)) throw httpError(403, 'Admins only'); }
 // ---------------- auth ----------------
 route('GET', '/api/state', { auth: 'none' }, () => ({
   needs_setup: get('SELECT COUNT(*) n FROM users').n === 0,
+  setup_code_required: !!process.env.SETUP_CODE,
   business_name: getSetting('business_name'),
 }));
 
 route('POST', '/api/setup', { auth: 'none' }, (ctx) => {
   if (get('SELECT COUNT(*) n FROM users').n > 0) throw httpError(400, 'Already set up');
   const b = ctx.body; required(b, ['username', 'password']);
+  if (process.env.SETUP_CODE && String(b.setup_code || '').trim() !== process.env.SETUP_CODE) {
+    sec.loginFailed(ctx.ip); throw httpError(403, 'Wrong setup code');
+  }
   if (String(b.password).length < 8) throw httpError(400, 'Password must be at least 8 characters');
   const { hash, salt } = sec.hashPassword(b.password);
   const r = run('INSERT INTO users(username, display_name, pass_hash, salt, role, created_at) VALUES(?,?,?,?,?,?)',
@@ -411,6 +415,9 @@ if (require.main === module) {
     console.log(`Horn store manager running on http://localhost:${PORT}`);
     console.log(`Al-Waseet API: ${aw.BASE}`);
     sync.startScheduler();
+    // one-time connectivity check so the logs show whether Al-Waseet is reachable from this server
+    aw.cities().then(c => console.log(`Al-Waseet reachable: ${Array.isArray(c) ? c.length : 0} cities`))
+      .catch(e => console.log('Al-Waseet NOT reachable: ' + e.message));
   });
 }
 module.exports = server;

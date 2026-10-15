@@ -6,7 +6,7 @@ const T = {
   ar: {
     app: 'إدارة متجر الهورنات', dashboard: 'الرئيسية', orders: 'الطلبات', products: 'المخزون', purchases: 'المشتريات',
     expenses: 'المصاريف', invoices: 'فواتير الوسيط', settings: 'الإعدادات', more: 'المزيد', logout: 'تسجيل الخروج', lang: 'English',
-    login: 'تسجيل الدخول', username: 'اسم المستخدم', password: 'كلمة المرور', setup_title: 'إعداد الحساب لأول مرة',
+    login: 'تسجيل الدخول', setup_code: 'رمز الإعداد', username: 'اسم المستخدم', password: 'كلمة المرور', setup_title: 'إعداد الحساب لأول مرة',
     setup_sub: 'أنشئ حساب المدير لمتجرك', business_name: 'اسم المتجر', display_name: 'الاسم', create_account: 'إنشاء الحساب',
     login_sub: 'أدخل بياناتك للمتابعة',
     today: 'اليوم', d7: '7 أيام', this_month: 'هذا الشهر', last_month: 'الشهر الماضي', custom: 'مخصص', from: 'من', to: 'إلى', apply: 'تطبيق',
@@ -54,7 +54,7 @@ const T = {
   en: {
     app: 'Horn Store Manager', dashboard: 'Dashboard', orders: 'Orders', products: 'Inventory', purchases: 'Purchases',
     expenses: 'Expenses', invoices: 'Al-Waseet invoices', settings: 'Settings', more: 'More', logout: 'Log out', lang: 'العربية',
-    login: 'Log in', username: 'Username', password: 'Password', setup_title: 'First-time setup',
+    login: 'Log in', setup_code: 'Setup code', username: 'Username', password: 'Password', setup_title: 'First-time setup',
     setup_sub: 'Create the admin account for your store', business_name: 'Store name', display_name: 'Your name', create_account: 'Create account',
     login_sub: 'Enter your details to continue',
     today: 'Today', d7: '7 days', this_month: 'This month', last_month: 'Last month', custom: 'Custom', from: 'From', to: 'To', apply: 'Apply',
@@ -184,6 +184,7 @@ async function renderAuth() {
       <div><h1>${setup ? t('setup_title') : esc(st.business_name || t('app'))}</h1><p>${setup ? t('setup_sub') : t('login_sub')}</p></div>
       ${setup ? `<label class="field">${t('business_name')}<input name="business_name" required value="${esc(st.business_name || '')}"></label>
                  <label class="field">${t('display_name')}<input name="display_name"></label>` : ''}
+      ${setup && st.setup_code_required ? `<label class="field">${t('setup_code')}<input name="setup_code" required autocomplete="off" dir="ltr"></label>` : ''}
       <label class="field">${t('username')}<input name="username" required autocomplete="username" autocapitalize="off"></label>
       <label class="field">${t('password')}<input name="password" type="password" required minlength="${setup ? 8 : 1}" autocomplete="${setup ? 'new-password' : 'current-password'}"></label>
       <button class="btn primary" type="submit">${setup ? t('create_account') : t('login')}</button>
