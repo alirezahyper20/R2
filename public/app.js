@@ -6,7 +6,7 @@ const T = {
   ar: {
     app: 'إدارة متجر الهورنات', dashboard: 'الرئيسية', orders: 'الطلبات', products: 'المخزون', purchases: 'المشتريات',
     expenses: 'المصاريف', invoices: 'فواتير الوسيط', settings: 'الإعدادات', more: 'المزيد', logout: 'تسجيل الخروج', lang: 'English',
-    login: 'تسجيل الدخول', setup_code: 'رمز الإعداد', username: 'اسم المستخدم', password: 'كلمة المرور', setup_title: 'إعداد الحساب لأول مرة',
+    login: 'تسجيل الدخول', setup_code: 'رمز الإعداد', aw_enter_first: 'أدخل اسم المستخدم وكلمة المرور الخاصة بالوسيط أولاً', username: 'اسم المستخدم', password: 'كلمة المرور', setup_title: 'إعداد الحساب لأول مرة',
     setup_sub: 'أنشئ حساب المدير لمتجرك', business_name: 'اسم المتجر', display_name: 'الاسم', create_account: 'إنشاء الحساب',
     login_sub: 'أدخل بياناتك للمتابعة',
     today: 'اليوم', d7: '7 أيام', this_month: 'هذا الشهر', last_month: 'الشهر الماضي', custom: 'مخصص', from: 'من', to: 'إلى', apply: 'تطبيق',
@@ -54,7 +54,7 @@ const T = {
   en: {
     app: 'Horn Store Manager', dashboard: 'Dashboard', orders: 'Orders', products: 'Inventory', purchases: 'Purchases',
     expenses: 'Expenses', invoices: 'Al-Waseet invoices', settings: 'Settings', more: 'More', logout: 'Log out', lang: 'العربية',
-    login: 'Log in', setup_code: 'Setup code', username: 'Username', password: 'Password', setup_title: 'First-time setup',
+    login: 'Log in', setup_code: 'Setup code', aw_enter_first: 'Enter your Al-Waseet username and password first', username: 'Username', password: 'Password', setup_title: 'First-time setup',
     setup_sub: 'Create the admin account for your store', business_name: 'Store name', display_name: 'Your name', create_account: 'Create account',
     login_sub: 'Enter your details to continue',
     today: 'Today', d7: '7 days', this_month: 'This month', last_month: 'Last month', custom: 'Custom', from: 'From', to: 'To', apply: 'Apply',
@@ -816,7 +816,7 @@ PAGES.settings = async (el) => {
 
     ${passwordCard()}
 
-    <div class="card"><h2>${t('sync_log')}</h2>${log.length ? `<div class="small" style="max-height:220px;overflow:auto">${log.map(l => `<div style="padding:4px 0;border-bottom:1px solid var(--line)"><span class="num muted">${esc(l.created_at)}</span> ${l.ok ? '✓' : '<span class="bad">✗</span>'} <span class="num" dir="ltr">${esc(l.message)}</span></div>`).join('')}</div>` : `<div class="empty">${t('no_data')}</div>`}</div>
+    <div class="card"><h2>${t('sync_log')}</h2>${log.length ? `<div class="small" style="max-height:220px;overflow:auto">${log.map(l => `<div style="padding:4px 0;border-bottom:1px solid var(--line)"><span class="num muted">${esc(l.created_at)}</span> ${l.ok ? '✓' : '<span class="bad">✗</span>'} <span class="num" dir="ltr">${/credentials are not set/i.test(l.message) ? esc(t('aw_enter_first')) : esc(l.message)}</span></div>`).join('')}</div>` : `<div class="empty">${t('no_data')}</div>`}</div>
   </div>`;
 
   const save = async (form, btn) => guard(btn, async () => {
@@ -829,12 +829,30 @@ PAGES.settings = async (el) => {
   });
   $('#awf').onsubmit = e => { e.preventDefault(); save(e.target, e.submitter).then(() => route()); };
   $('#gf').onsubmit = e => { e.preventDefault(); save(e.target, e.submitter).then(() => { renderShell(); route(); }); };
+  // Save whatever is typed in the Al-Waseet form (so Test/Sync never run against old or empty credentials)
+  const saveAw = async () => {
+    const body = Object.fromEntries(new FormData($('#awf')));
+    if (body.aw_password === '') delete body.aw_password;
+    await api('PUT', '/api/settings', body);
+    S.settings = await api('GET', '/api/settings');
+    S.me = await api('GET', '/api/me');
+  };
+  const awFilled = () => s.aw_from_env || (($('#awf').aw_username?.value || '').trim() && (($('#awf').aw_password?.value || '') || s.aw_password_set));
   $('#aw-test').onclick = e => guard(e.currentTarget, async () => {
+    if (!awFilled()) return toast(t('aw_enter_first'), true);
     const f = $('#awf'); const body = {};
-    if (f.aw_username) { body.username = f.aw_username.value; body.password = f.aw_password.value; }
-    await api('POST', '/api/aw/test', body); toast(t('conn_ok'));
+    if (f.aw_username) { body.username = f.aw_username.value.trim(); body.password = f.aw_password.value; }
+    await api('POST', '/api/aw/test', body);
+    await saveAw();
+    toast(t('conn_ok') + ' — ' + t('saved'));
+    route();
   });
-  $('#aw-sync').onclick = e => doSync(e.currentTarget, () => route());
+  $('#aw-sync').onclick = async e => {
+    if (!awFilled()) return toast(t('aw_enter_first'), true);
+    const btn = e.currentTarget;
+    const ok = await guard(btn, async () => { await saveAw(); return true; });
+    if (ok) doSync(btn, () => route());
+  };
   $$('[data-sm]').forEach(sel => sel.onchange = () => guard(sel, async () => { await api('PUT', '/api/status-map/' + sel.dataset.sm, { state: sel.value }); toast(t('saved')); }));
   $$('[data-ut]').forEach(b => b.onclick = () => guard(b, async () => { await api('PUT', '/api/users/' + b.dataset.ut, { active: b.dataset.active === '1' ? 0 : 1 }); route(); }));
   $('#nu').onclick = () => {
