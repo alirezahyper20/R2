@@ -6,7 +6,7 @@ const T = {
   ar: {
     app: 'إدارة متجر الهورنات', dashboard: 'الرئيسية', orders: 'الطلبات', products: 'المخزون', purchases: 'المشتريات',
     expenses: 'المصاريف', invoices: 'فواتير الوسيط', settings: 'الإعدادات', more: 'المزيد', logout: 'تسجيل الخروج', lang: 'English',
-    login: 'تسجيل الدخول', setup_code: 'رمز الإعداد', aw_enter_first: 'أدخل اسم المستخدم وكلمة المرور الخاصة بالوسيط أولاً', aw_perm_help: 'تسجيل الدخول نجح لكن الوسيط رفض بعض الصلاحيات. تأكد أنك تستخدم حساب التاجر الرئيسي (وليس حساب موظف)، أو اطلب من الوسيط تفعيل الربط البرمجي (API) لحسابك.', username: 'اسم المستخدم', password: 'كلمة المرور', setup_title: 'إعداد الحساب لأول مرة',
+    login: 'تسجيل الدخول', setup_code: 'رمز الإعداد', no_products_yet: 'لا توجد منتجات بعد. أضف منتجك الأول (مثلاً هورن حلزوني) مع سعر البيع والكمية والكلفة.', aw_enter_first: 'أدخل اسم المستخدم وكلمة المرور الخاصة بالوسيط أولاً', aw_perm_help: 'تسجيل الدخول نجح لكن الوسيط رفض بعض الصلاحيات. تأكد أنك تستخدم حساب التاجر الرئيسي (وليس حساب موظف)، أو اطلب من الوسيط تفعيل الربط البرمجي (API) لحسابك.', username: 'اسم المستخدم', password: 'كلمة المرور', setup_title: 'إعداد الحساب لأول مرة',
     setup_sub: 'أنشئ حساب المدير لمتجرك', business_name: 'اسم المتجر', display_name: 'الاسم', create_account: 'إنشاء الحساب',
     login_sub: 'أدخل بياناتك للمتابعة',
     today: 'اليوم', d7: '7 أيام', this_month: 'هذا الشهر', last_month: 'الشهر الماضي', custom: 'مخصص', from: 'من', to: 'إلى', apply: 'تطبيق',
@@ -54,7 +54,7 @@ const T = {
   en: {
     app: 'Horn Store Manager', dashboard: 'Dashboard', orders: 'Orders', products: 'Inventory', purchases: 'Purchases',
     expenses: 'Expenses', invoices: 'Al-Waseet invoices', settings: 'Settings', more: 'More', logout: 'Log out', lang: 'العربية',
-    login: 'Log in', setup_code: 'Setup code', aw_enter_first: 'Enter your Al-Waseet username and password first', aw_perm_help: 'Login worked but Al-Waseet refused some access. Make sure this is the main merchant account (not a staff/merchant-user account), or ask Al-Waseet to enable API integration for your account.', username: 'Username', password: 'Password', setup_title: 'First-time setup',
+    login: 'Log in', setup_code: 'Setup code', no_products_yet: 'No products yet. Add your first product (e.g. a snail horn) with its sale price, quantity and cost.', aw_enter_first: 'Enter your Al-Waseet username and password first', aw_perm_help: 'Login worked but Al-Waseet refused some access. Make sure this is the main merchant account (not a staff/merchant-user account), or ask Al-Waseet to enable API integration for your account.', username: 'Username', password: 'Password', setup_title: 'First-time setup',
     setup_sub: 'Create the admin account for your store', business_name: 'Store name', display_name: 'Your name', create_account: 'Create account',
     login_sub: 'Enter your details to continue',
     today: 'Today', d7: '7 days', this_month: 'This month', last_month: 'Last month', custom: 'Custom', from: 'From', to: 'To', apply: 'Apply',
@@ -437,12 +437,14 @@ async function loadProducts() { S.products = await api('GET', '/api/products'); 
 
 function linesEditor(container, lines, onChange) {
   const draw = () => {
-    container.innerHTML = `<div class="lines">${lines.map((l, i) => `<div class="line" data-i="${i}">
-        <select data-f="product_id" required><option value="">${t('select')}</option>${S.products.map(p => `<option value="${p.id}" ${p.id == l.product_id ? 'selected' : ''}>${esc(pname(p))} (${p.stock_qty})</option>`).join('')}</select>
+    const none = !S.products.filter(p => p.active !== 0).length;
+    container.innerHTML = `${none ? `<div class="alert warn" style="margin-bottom:8px">${icon('warn')}<div>${t('no_products_yet')}</div></div>` : ''}<div class="lines">${lines.map((l, i) => `<div class="line" data-i="${i}">
+        <select data-f="product_id" required><option value="">${t('select')}</option>${S.products.filter(p => p.active !== 0).map(p => `<option value="${p.id}" ${p.id == l.product_id ? 'selected' : ''}>${esc(pname(p))} (${p.stock_qty})</option>`).join('')}</select>
         <input data-f="qty" type="number" min="1" value="${l.qty}" inputmode="numeric" aria-label="${t('qty')}">
         <input data-f="unit_price" type="number" min="0" step="250" value="${l.unit_price}" inputmode="numeric" aria-label="${t('unit_price')}">
         <button type="button" class="icon-btn" data-rm aria-label="${t('delete')}">${icon('trash')}</button></div>`).join('')}</div>
-      <button type="button" class="btn sm" data-add style="margin-top:8px">${icon('plus')} ${t('add_line')}</button>`;
+      <div class="toolbar" style="margin:8px 0 0">${none ? '' : `<button type="button" class="btn sm" data-add>${icon('plus')} ${t('add_line')}</button>`}
+      ${isAdmin() ? `<button type="button" class="btn sm ${none ? 'primary' : ''}" data-newp>${icon('plus')} ${t('new_product')}</button>` : ''}</div>`;
     $$('.line', container).forEach(row => {
       const i = +row.dataset.i;
       $$('[data-f]', row).forEach(inp => inp.onchange = inp.oninput = () => {
@@ -452,7 +454,18 @@ function linesEditor(container, lines, onChange) {
       });
       $('[data-rm]', row).onclick = () => { lines.splice(i, 1); if (!lines.length) lines.push({ product_id: '', qty: 1, unit_price: 0 }); draw(); onChange && onChange(); };
     });
-    $('[data-add]', container).onclick = () => { lines.push({ product_id: '', qty: 1, unit_price: 0 }); draw(); onChange && onChange(); };
+    const add = $('[data-add]', container);
+    if (add) add.onclick = () => { lines.push({ product_id: '', qty: 1, unit_price: 0 }); draw(); onChange && onChange(); };
+    const np = $('[data-newp]', container);
+    if (np) np.onclick = () => productForm(null, async created => {
+      await loadProducts();
+      if (created && created.id) {
+        let line = lines.find(l => !l.product_id);
+        if (!line) { line = { product_id: '', qty: 1, unit_price: 0 }; lines.push(line); }
+        line.product_id = created.id; line.unit_price = created.sale_price;
+      }
+      draw(); onChange && onChange();
+    });
   };
   draw();
 }
@@ -648,8 +661,8 @@ async function productForm(p, after) {
     const f = $('#pf', m); if (!f.reportValidity()) return;
     const body = Object.fromEntries(new FormData(f));
     if (body.active != null) body.active = body.active === '1';
-    await api(p ? 'PUT' : 'POST', p ? `/api/products/${p.id}` : '/api/products', body);
-    toast(t('saved')); closeModal(m); after && after();
+    const saved = await api(p ? 'PUT' : 'POST', p ? `/api/products/${p.id}` : '/api/products', body);
+    toast(t('saved')); closeModal(m); after && after(saved);
   });
 }
 
