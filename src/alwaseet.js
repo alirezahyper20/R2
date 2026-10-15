@@ -38,7 +38,23 @@ const isConfigured = () => { const c = credentials(); return !!(c.username && c.
 // How the token is put in the URL. Some servers compare it un-decoded, so 'raw' sends it exactly as received.
 const tokenMode = () => getSetting('aw_token_mode') || 'encoded';
 
-async function raw(method, endpoint, { query = {}, form = null, mode = null, headers = {} } = {}) {
+// Cookie jar: Postman (which Al-Waseet's examples come from) keeps cookies the server sets at login and
+// sends them back on every later request. Node's fetch doesn't, so we do it here.
+const jar = new Map();
+try { for (const [k, v] of Object.entries(JSON.parse(getSetting('aw_cookies') || '{}'))) jar.set(k, v); } catch {}
+function storeCookies(res) {
+  const list = typeof res.headers.getSetCookie === 'function' ? res.headers.getSetCookie() : [];
+  for (const c of list) {
+    const [pair] = c.split(';'); const i = pair.indexOf('=');
+    if (i > 0) jar.set(pair.slice(0, i).trim(), pair.slice(i + 1).trim());
+  }
+  if (list.length) setSetting('aw_cookies', JSON.stringify(Object.fromEntries(jar)));
+  return list.map(c => c.split('=')[0]);
+}
+const cookieHeader = () => [...jar].map(([k, v]) => `${k}=${v}`).join('; ');
+const lastInfo = {};
+
+async function raw(method, endpoint, { query = {}, form = null, mode = null, headers = {}, cookies = true } = {}) {
   await throttle();
   const m = mode || tokenMode();
   const parts = [];
@@ -51,10 +67,15 @@ async function raw(method, endpoint, { query = {}, form = null, mode = null, hea
   if (form) { body = new FormData(); for (const [k, v] of Object.entries(form)) if (v != null && v !== '') body.append(k, String(v)); }
   let res, json;
   try {
-    res = await fetch(url, { method, body, signal: AbortSignal.timeout(30_000), headers: { Accept: 'application/json', ...headers } });
+    const h = { Accept: 'application/json', 'User-Agent': 'PostmanRuntime/7.39.0', ...headers };
+    if (cookies && jar.size) h.Cookie = cookieHeader();
+    res = await fetch(url, { method, body, signal: AbortSignal.timeout(30_000), headers: h });
   } catch (e) {
     throw new AlWaseetError('Cannot reach Al-Waseet: ' + e.message, 'NET');
   }
+  const setNames = storeCookies(res);
+  Object.assign(lastInfo, { endpoint, status: res.status, redirected: res.redirected, finalUrlPath: new URL(res.url).pathname,
+    setCookies: setNames, headerNames: [...res.headers.keys()] });
   const text = await res.text();
   try { json = JSON.parse(text); } catch { throw new AlWaseetError(`Unexpected response (HTTP ${res.status})`, 'PARSE', res.status); }
   if (json.status !== true) {
@@ -65,7 +86,9 @@ async function raw(method, endpoint, { query = {}, form = null, mode = null, hea
 }
 
 async function login(username, password) {
+  jar.clear(); setSetting('aw_cookies', '{}');
   const data = await raw('POST', 'login', { form: { username, password } });
+  console.log('Al-Waseet login response info: ' + JSON.stringify(lastInfo));
   if (!data || !data.token) throw new AlWaseetError('Login succeeded but no token returned');
   console.log('Al-Waseet login ok; response fields: ' + Object.keys(data).join(','));
   const tk = String(data.token);
@@ -121,7 +144,7 @@ async function cached(key, ttlMs, fn) {
 const DAY = 864e5;
 
 module.exports = {
-  raw,
+  raw, lastInfo, jar,
   BASE, AlWaseetError, isConfigured, credentials, login, token, normalizeMobile,
   clearToken: () => setSetting('aw_token', ''),
   cities: () => cached('cities', DAY, () => raw('GET', 'citys')),

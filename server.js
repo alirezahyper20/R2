@@ -290,6 +290,13 @@ route('POST', '/api/aw/test', async (ctx) => {
   const username = ctx.body.username || c.username, password = ctx.body.password || c.password;
   if (!username || !password) throw httpError(400, 'Enter username and password');
   const token = await aw.login(username, password);
+  console.log('Al-Waseet cookies after login: ' + ([...aw.jar.keys()].join(',') || 'none'));
+  // Does this server leave the internet from one fixed address? (Some APIs tie a token to the login IP.)
+  try {
+    const ips = [];
+    for (let i = 0; i < 3; i++) ips.push((await (await fetch('https://api.ipify.org', { signal: AbortSignal.timeout(8000) })).text()).trim());
+    console.log('Outbound IPs seen: ' + ips.join(', '));
+  } catch (e) { console.log('Outbound IP check failed: ' + e.message); }
   // Find a way of sending the token that Al-Waseet accepts (tried on the read-only statuses API).
   // Their published examples show tokens shaped like "@@<hex>", so also try with that prefix.
   const withAt = token.startsWith('@@') ? token : '@@' + token;
@@ -302,7 +309,7 @@ route('POST', '/api/aw/test', async (ctx) => {
   for (const [m, tk, headers] of variants) {
     const label = `${m}${tk !== token ? '+@@' : ''}${Object.keys(headers).length ? '+auth' : ''}`;
     try { await aw.raw('GET', 'statuses', { query: { token: tk }, mode: m, headers }); mode = m; goodToken = tk; tried.push(label + ': ok'); break; }
-    catch (e) { tried.push(`${label}: ${e.errNum}`); }
+    catch (e) { tried.push(`${label}: ${e.errNum} ${JSON.stringify({ r: aw.lastInfo.redirected, p: aw.lastInfo.finalUrlPath, s: aw.lastInfo.status })}`); }
   }
   console.log('Al-Waseet token check (length ' + token.length + ', hex-only ' + /^[0-9a-f]+$/i.test(token) +
     ', has @ ' + token.includes('@') + '):', tried.join(' | '));
