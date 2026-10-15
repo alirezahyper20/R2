@@ -1,0 +1,15 @@
+{
+  "name": "horn-store-manager",
+  "version": "1.0.0",
+  "description": "Revenue, profit, expenses and inventory manager for an online car-horn store, integrated with Al-Waseet delivery (Iraq).",
+  "main": "server.js",
+  "private": true,
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node server.js",
+    "mock": "node tools/mock-alwaseet.js",
+    "demo": "node tools/demo.js",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "UNLICENSED"
+}
