@@ -470,6 +470,13 @@ if (require.main === module) {
     // one-time connectivity check so the logs show whether Al-Waseet is reachable from this server
     aw.cities().then(c => console.log(`Al-Waseet reachable: ${Array.isArray(c) ? c.length : 0} cities`))
       .catch(e => console.log('Al-Waseet NOT reachable: ' + e.message));
+    // One-off reference check: the example statuses request published in Al-Waseet's own Postman docs
+    // (read-only list of status names, no account data).
+    if (process.env.AW_DOC_EXAMPLE_CHECK === '1') {
+      aw.raw('GET', 'statuses', { query: { token: '@@827ccb0eea8a706c4c34a16891f84e7b626750bf01cc308' }, mode: 'raw' })
+        .then(d => console.log('Docs example token on statuses: OK, ' + (Array.isArray(d) ? d.length : '?') + ' statuses: ' + JSON.stringify((d || []).slice(0, 3))))
+        .catch(e => console.log('Docs example token on statuses: FAILED errNum=' + e.errNum + ' ' + e.message));
+    }
   });
 }
 module.exports = server;
